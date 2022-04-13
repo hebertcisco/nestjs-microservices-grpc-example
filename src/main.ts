@@ -1,35 +1,14 @@
 import { NestFactory } from '@nestjs/core';
+import { MicroserviceOptions } from '@nestjs/microservices';
 import { AppModule } from './app.module';
-import { configService } from './infra/config/config.service';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
-import dotenv from 'dotenv';
-import 'reflect-metadata';
-
-dotenv.config();
-const port = process.env.PORT;
+import { grpcClientOptions } from './grpc-client.options';
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule);
+  app.connectMicroservice<MicroserviceOptions>(grpcClientOptions);
 
-    app.useGlobalPipes(
-        new ValidationPipe({
-            transform: true,
-        }),
-    );
-    app.enableCors();
-    if (!configService.isProduction()) {
-        const config = new DocumentBuilder()
-            .setTitle('nestjs-rest-boilerplate')
-            .setDescription('')
-            .setVersion('0.0.1')
-            .addTag('nestjs-rest-boilerplate')
-            .build();
-        const document = SwaggerModule.createDocument(app, config);
-        SwaggerModule.setup('docs', app, document);
-    }
-
-    await app.listen(port || 3000);
+  await app.startAllMicroservices();
+  await app.listen(3001);
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
-
-bootstrap().then(() => console.log('Server is running on port: ' + port));
+bootstrap();
